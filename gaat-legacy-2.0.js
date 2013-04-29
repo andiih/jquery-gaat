@@ -93,7 +93,7 @@ function trackInternalLinks(evnt) {
     if (e.search && e.pathname.indexOf(e.search) == -1) lnk += e.search;
 
     lnk = e.hostname + lnk;
-    _gaq.push(['_trackEvent', 'Link', 'Internal', lnk, 0, true]);
+    gaat_trackEvent('Link', 'Internal', lnk, 0, true);
 }
 
 function trackFormPost(evnt){
