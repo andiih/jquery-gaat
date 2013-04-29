@@ -30,82 +30,82 @@
 //
 //
 
-(function(jQuery){
+(function (jQuery) {
 
-    jQuery.gaat = function(opts){
+    jQuery.gaat = function (opts) {
 
         opts = jQuery.extend({
-            extensions:     ['doc','eps','svg','xls','ppt','pdf','xls','zip','txt','vsd','vxd','js','css','rar','exe','wma','mov','avi','wmv','mp3'],
-            trackEmail:     true,
-            trackExternal: 	true,
-            trackDownload: 	true,
-            trackFTP:       true,
-            hostname:       location.host,
-            debug:          false
+            extensions: ['doc', 'eps', 'svg', 'xls', 'ppt', 'pdf', 'xls', 'zip', 'txt', 'vsd', 'vxd', 'js', 'css', 'rar', 'exe', 'wma', 'mov', 'avi', 'wmv', 'mp3'],
+            trackEmail: true,
+            trackExternal: true,
+            trackDownload: true,
+            trackFTP: true,
+            hostname: location.host,
+            debug: false
         }, opts);
 
         opts.extensions = new RegExp('\\.(?:' + opts.extensions.join('|') + ')($|\\&|\\?)');
 
         /* Add the prop function for jQuery < 1.6 */
-        if( !jQuery.fn.prop )
-        {
+        if (!jQuery.fn.prop) {
             jQuery.fn.extend({
-                prop: function(property){
+                prop: function (property) {
                     return jQuery(this).attr(property);
                 }
             });
         }
 
         /* Double check the status of gaq */
-        function trackEvent(category, action, opt_label, opt_value, opt_noninteraction)
-        {
-            if (typeof(_gaq) 	== "object")
-            {
+        function trackEvent(category, action, opt_label, opt_value, opt_noninteraction) {
+            if (typeof (_gaq) == "object") {
                 var tracking_event = ['_trackEvent', category, action, opt_label, opt_value, opt_noninteraction];
                 if (opts.debug) alert(tracking_event);
                 _gaq.push(tracking_event);
             }
         }
 
-        function trackFormPost(e,obj)
-        {
+        function trackFormPost(e, obj) {
             var action = jQuery(obj).attr('action');
             var method = jQuery(obj).prop('method');
 
-            if( method.toLowerCase() == 'post' )
-            {
-                trackEvent('Form','Submit', action, 0, true);
+            if (method.toLowerCase() == 'post') {
+                trackEvent('Form', 'Submit', action, 0, true);
             }
         }
 
-        function trackFTP(e,obj)
-        {
-            if(opts.debug) e.preventDefault();
+        function trackFTP(e, obj) {
+            if (opts.debug) e.preventDefault();
 
             var href = jQuery(obj).attr('href');
 
-            trackEvent('Link','FTP',href,0,true);
+            trackEvent('Link', 'FTP', href, 0, true);
+        }
+
+        function relocate(e, obj) {
+            if (jQuery(obj).attr('target') == undefined || jQuery(obj).attr('target').toLowerCase() != '_blank') {
+                if (jQuery._data(obj, 'events').click.length > 1) return true;
+                setTimeout(function () { location.href = obj.href; }, 400);
+                return false;
+            }
         }
 
         /* Track email addresses with the email prefix from opts */
-        function trackEmail(e,obj)
-        {
-            if(opts.debug) e.preventDefault();
+        function trackEmail(e, obj) {
+            if (opts.debug) e.preventDefault();
 
             var href = jQuery(obj).attr('href');
             var mailto = href.substring(7);
-
-            trackEvent('Link','Email',mailto, 0, false);
+            trackEvent('Link', 'Email', mailto, 0, false);
+            return relocate(e, obj);
         }
 
-        function trackDownload(e,obj)
-        {
-            if(opts.debug) e.preventDefault();
+        function trackDownload(e, obj) {
+            if (opts.debug) e.preventDefault();
 
-            var pathname	= jQuery(obj).prop('pathname');
-            var search	 = jQuery(obj).prop('search');
+            var pathname = jQuery(obj).prop('pathname');
+            var search = jQuery(obj).prop('search');
 
-            var link 	= (pathname.charAt(0) == "/") ? pathname : "/" + pathname;
+            var link = (pathname.charAt(0) == "/") ? pathname : "/" + pathname;
 
             if (search && pathname.indexOf(search) == -1) link += search;
 
@@ -136,104 +136,153 @@
                 sub_category = 'Zip';
             }
 
-            trackEvent('Download',sub_category,link, 0, false);
+            trackEvent('Download', sub_category, link, 0, false);
+            return relocate(e, obj);
         }
 
-        function trackExternal(e,obj)
-        {
-            if(opts.debug) e.preventDefault();
+        function trackExternal(e, obj) {
+            if (opts.debug) e.preventDefault();
 
-            var pathname	= jQuery(obj).prop('pathname');
-            var hostname 	= jQuery(obj).prop('hostname');
-            var search	= jQuery(obj).prop('search');
+            var pathname = jQuery(obj).prop('pathname');
+            var hostname = jQuery(obj).prop('hostname');
+            var search = jQuery(obj).prop('search');
 
-            var link 	= (pathname.charAt(0) == "/") ? pathname : "/" + pathname;
+            var link = (pathname.charAt(0) == "/") ? pathname : "/" + pathname;
 
             if (search && pathname.indexOf(search) == -1) link += search;
 
-            link		= hostname + link;
+            link = hostname + link;
 
-            trackEvent('Link','External',link,0,true);
+            trackEvent('Link', 'External', link, 0, true);
+            return relocate(e, obj);
+        }
+        function trackInternal(e, obj) {
+            if (opts.debug) e.preventDefault();
+
+            var pathname = jQuery(obj).prop('pathname');
+            var hostname = jQuery(obj).prop('hostname');
+            var data = jQuery(obj).data('gaat-label') || "";
+            var search = jQuery(obj).prop('search');
+
+            var link = (pathname.charAt(0) == "/") ? pathname : "/" + pathname;
+
+            if (search && pathname.indexOf(search) == -1) link += search;
+
+            link = hostname + link;
+
+            var label = "Internal " + data;
+
+            trackEvent('Link', label, link, 0, true);
+            return relocate(e, obj);
         }
 
-        function addLinkTracking()
-        {
+        function addLinkTracking() {
             jQuery('form').each(
-                function(){
+                function () {
 
-                    jQuery(this).submit(function(e){trackFormPost(e,this)});
+                    jQuery(this).submit(function (e) { trackFormPost(e, this) });
 
                 }
             )
             jQuery('a[data-group="gaat_tracked"]').each(
-                function(){
+                function () {
 
                     var track_as = jQuery(this).attr('data-track-as');
 
-                    switch(track_as)
-                    {
+                    switch (track_as) {
                         case 'download':
-                            jQuery(this).click(function(e){trackDownload(e,this)});
+                            jQuery(this).click(function (e) { return trackDownload(e, this); });
                             break;
                         case 'email':
-                            jQuery(this).click(function(e){trackEmail(e,this)});
+                            jQuery(this).click(function (e) { return trackEmail(e, this); });
                             break;
                         case 'ftp':
-                            jQuery(this).click(function(e){trackFTP(e,this)});
+                            jQuery(this).click(function (e) { return trackFTP(e, this); });
                             break;
                         case 'external':
-                            jQuery(this).click(function(e){trackExternal(e,this)});
+                            jQuery(this).click(function (e) { return trackExternal(e, this); });
+                            break;
+                        case 'internal':
+                            jQuery(this).click(function (e) { return trackInternal(e, this); });
                             break;
                     }
 
                 });
-            jQuery('a').each(
-                function(){
-                    try{
-                        var href 	    = jQuery(this).prop('href');
-                        var hostname 	= jQuery(this).prop('hostname');
-                        var protocol 	= jQuery(this).prop('protocol');
-                        var pathname	= jQuery(this).prop('pathname');
-                        var search	    = jQuery(this).prop('search');
-                        var path	    = pathname + search;
 
-                        if ( (href.match(/^javascript:/) || href == '#' || href == '') ){
+            jQuery(document).on('click', 'a[data-group="gaat_tracked_dynamic"]',
+                function (e) {
+
+                    var track_as = jQuery(this).attr('data-track-as');
+
+                    switch (track_as) {
+                        case 'download':
+                            return trackDownload(e, this);
+                            break;
+                        case 'email':
+                            return trackEmail(e, this);
+                            break;
+                        case 'ftp':
+                            return trackFTP(e, this);
+                            break;
+                        case 'external':
+                            return trackExternal(e, this);
+                            break;
+                        case 'internal':
+                            return trackInternal(e, this);
+                            break;
+                    }
+
+                });
+
+
+            jQuery('a').each(
+                function () {
+                    try {
+                        var href = jQuery(this).prop('href');
+                        var hostname = jQuery(this).prop('hostname');
+                        var protocol = jQuery(this).prop('protocol');
+                        var pathname = jQuery(this).prop('pathname');
+                        var search = jQuery(this).prop('search');
+                        //                        var trackInt = jQuery(this).data('gaattracked') || jQuery(this).hasClass('gaattracked');
+
+                        var path = pathname + search;
+
+                        if ((href.match(/^javascript:/) || href == '#' || href == '')) {
                             return true; // Skip to next element
                         }
 
-                        if(protocol == "mailto:")
-                        {
-                            jQuery(this).click(function(e){trackEmail(e,this)});
+                        if (protocol == "mailto:") {
+                            jQuery(this).click(function (e) { return trackEmail(e, this); });
                         }
-                        else if(protocol == "ftp:")
-                        {
-                            jQuery(this).click(function(e){trackFTP(e,this)});
+                        else if (protocol == "ftp:") {
+                            jQuery(this).click(function (e) { return trackFTP(e, this); });
                         }
-                        else if(hostname == opts.hostname && path.match(opts.extensions)) // Track links with matching hostnames as internal
+                        else if (hostname == opts.hostname && path.match(opts.extensions)) // Track links with matching hostnames as internal
                         {
-                            jQuery(this).click(function(e){trackDownload(e,this)});
+                            jQuery(this).click(function (e) { return trackDownload(e, this); });
                         }
-                        else if(hostname != opts.hostname) // Track anything that doesn't match the hostname as external
+                        //                        else if (hostname == opts.hostname && trackInt) // Track links with matching hostnames as internal
+                        //                        {
+                        //                            jQuery(this).click(function (e) { return trackInternal(e, this); });
+                        //                        }
+                        else if (hostname != opts.hostname) // Track anything that doesn't match the hostname as external
                         {
-                            jQuery(this).click(function(e){trackExternal(e,this)});
+                            jQuery(this).click(function (e) { return trackExternal(e, this); });
                         }
 
                     }
-                    catch(e)
-                    {
+                    catch (e) {
                     }
                 }
             );
         }
 
-        if (typeof(_gaq) == "object")
-        {
-            if(opts.debug) alert("GAAT initializing, found _gaq");
+        if (typeof (_gaq) == "object") {
+            if (opts.debug) alert("GAAT initializing, found _gaq");
             addLinkTracking();
         }
-        else
-        {
-            if(opts.debug) alert("Unable to initialise GAAT, missing Google Analytics ga.js with gaq");
+        else {
+            if (opts.debug) alert("Unable to initialise GAAT, missing Google Analytics ga.js with gaq");
             return false;
         }
 
