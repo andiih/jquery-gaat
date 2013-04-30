@@ -62,6 +62,8 @@
                 if (opts.debug) alert(tracking_event);
                 _gaq.push(tracking_event);
             }
+            //                _gat._getTrackerByName()._trackEvent("category", "action2", "url", 0);
+            //                _gat._getTrackerByName()._trackEvent(category, action, opt_label, opt_value);
         }
 
         function trackFormPost(e, obj) {
